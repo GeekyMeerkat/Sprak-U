@@ -1,0 +1,228 @@
+number mem = Connect("SteeringComputer")
+number work = Connect("PoliceOfficeInterior_MinistryOfficeWorkstationComputer_1")
+number helper = Connect("ArcadeHall_ArcadeMachine_ArcadeMachine2_6")
+
+# Indexes
+number MainMenu_index = 0
+number FindCharacterMenu_index = 1
+
+number option_index = 0
+number menu_index = MainMenu_index
+
+# Flags
+bool exit_program = false
+bool was_pressed_space = false
+
+string thing = ""
+string room = ""
+string position = ""
+string type = ""
+string point = ""
+
+# Options
+string MainMenu_title = "--- MAIN MENU ---"
+array MainMenu
+helper.AddOption(MainMenu, "Find Someone", FindCharacterMenu_index, true)
+helper.AddOption(MainMenu, "Exit", -1, false)
+
+string FindCharacterMenu_title = "--- FIND CHARACTER MENU ---"
+array FindCharacterMenu
+array people = work.GetPeople()
+loop people
+	helper.AddOption(FindCharacterMenu, @, -1, false)
+end
+helper.AddOption(FindCharacterMenu, "Return to Main Menu", MainMenu_index, true)
+
+# Menus
+array menus # = mem.LoadMemoryPlus("menus")
+menus[MainMenu_index] = [MainMenu, MainMenu_title]
+menus[FindCharacterMenu_index] = [FindCharacterMenu, FindCharacterMenu_title]
+
+# mem.SaveMemoryPlus("menus", menus)
+
+array Message = []
+
+void MakeChoice()
+	array menu = menus[menu_index]
+	array options = helper.GetMenuOptions(menu)
+	if (option_index < 0 || option_index >= Count(options))
+		return
+	end
+	
+	array option = options[option_index]
+	number dest = helper.GetOptionDestination(option)
+	
+	if (dest == -1)
+		# This is a core choice do stuff
+		if (menu_index == MainMenu_index)
+			if (option[0] == "Exit")
+				exit_program = true
+			end
+		else if (menu_index == FindCharacterMenu_index)
+			FindThing(option[0])
+		end
+	else
+		menu_index = dest
+	end
+	
+	if(helper.GetOptionResetChoice(option))
+		option_index = 0
+	end
+end
+
+void FindThing(t)
+	thing = t
+	room = work.GetRoom(t)
+	position = work.GetPosition(t)
+	type = work.GetTypeOfThing(t)
+	
+	Message = []
+	Message[0] = "Name: " + t + " (" + type + ")"
+	Message[1] = position
+	
+	point = ""
+	loop work.GetThingsInRoom(room)
+		if work.GetTypeOfThing(@) == "point"
+			point = @
+			break
+		end
+	end
+	
+	Message[2] = "Point: " + point
+	
+	if (type == "character")
+		Message[3] = "Action: " + work.GetAction(t)
+		
+		string inv = t + "_inventory"
+		array inventory = work.GetThingsInRoom(inv)
+		
+		Message[4] = "Has: " + Count(inventory) + " things"
+	end
+end
+
+array HandleListInput_data = [false, false]
+number HandleListInput(array options, number selection)
+	if(IsKeyPressed("up"))
+		if(HandleListInput_data[0] == false)
+			selection--
+			if (selection < 0)
+				selection = Count(options) - 1
+			end
+		end
+		HandleListInput_data[0] = true
+	else
+		HandleListInput_data[0] = false
+	end
+	
+	if(IsKeyPressed("down"))
+		if(HandleListInput_data[1] == false)
+			selection++
+			if(selection >= Count(options))
+				selection = 0
+			end
+		end
+		HandleListInput_data[1] = true
+	else
+		HandleListInput_data[1] = false
+	end
+	
+	return selection
+end
+
+bool OnInput()
+	bool res = false
+	number lastIndex = option_index
+	if(IsKeyPressed("space"))
+		if(was_pressed_space == false)
+			MakeChoice()
+			res = true
+		end
+		was_pressed_space = true
+	else
+		was_pressed_space = false
+	end
+	if(res == true)
+		return true
+	end
+	array menu = menus[menu_index]
+	array options = helper.GetMenuOptions(menu)
+	option_index = HandleListInput(options, option_index)
+	return lastIndex != option_index
+end
+
+# Draw Functions
+void DrawTime(string time)
+	Print("                        " + time)
+	Print("")
+	Print("")
+	Print("")
+end
+
+void DrawTitle(string title)
+	Print(title)
+	Print("")
+end
+
+void DrawMessage()
+	if (Count(Message)>0)
+		loop Message
+			Print(@)
+		end
+		Print("")
+	end
+end
+
+void DrawMenu(array options)
+	number c = Count(options)
+	if (c > 5)
+		number start = option_index - 2
+		number stop = start + 4
+		if (start < 0)
+			start = 0
+			stop = 4
+		else if (stop >= c)
+			start = c - 5
+			stop = c - 1
+		end
+		
+		loop index from start to stop
+			bool selection = (index == option_index)
+			array option = options[index]
+			Print(helper.GetMenuText(option, selection))
+		end
+	else
+		number index = 0
+		loop option in options
+			bool selection = (index == option_index)
+			Print(helper.GetMenuText(option, selection))
+			index++
+		end
+	end
+end
+
+Main()
+
+void Main()
+	bool modified = true
+	loop
+		modified = OnInput() || modified
+		if modified
+			modified = false
+			ClearText()
+			DrawTime(helper.GetTimeDesc())
+			array menu = menus[menu_index]
+			DrawTitle(helper.GetMenuTitle(menu))
+			DrawMessage()
+			DrawMenu(helper.GetMenuOptions(menu))
+		end
+		if (exit_program)
+			break
+		end
+	end
+	
+	Print("")
+	Print("")
+	Print("Good Bye")
+	Sleep(3)
+	ClearText()
+end

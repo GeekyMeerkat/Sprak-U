@@ -1,0 +1,89 @@
+### HELPER ###
+#
+# Name:
+# ArcadeHall_ArcadeMachine_ArcadeMachine2_6
+
+ClearText()
+
+void AddOption(array list, string text, number destination_index, bool reset)
+    array option = [text, ToUppercase(text), destination_index, reset]
+    list[Count(list)] = option
+end
+
+number GetOptionDestination(array option)
+	return option[2]
+end
+
+bool GetOptionResetChoice(array option)
+	if (Count(option) >= 4)
+		return option[3]
+	else
+		return true
+	end
+end
+
+array GetMenuOptions(array menu)
+	return menu[0]
+end
+
+string GetMenuTitle(array menu)
+	return menu[1]
+end
+
+string GetMenuText(array option, bool selection)
+	if(selection)
+		return option[1]
+	else
+		return option[0]
+	end
+end
+
+string ToLowercase(string text)
+	string res = ""
+	loop c in text
+		if IsUppercase(c)
+			res += IntToChar(CharToInt(c) + 32)
+		else
+			res += c
+		end
+	end
+	return res
+end
+
+string ToUppercase(string text)
+	string res = ""
+	loop c in text
+		if IsLowercase(c)
+			res += IntToChar(CharToInt(c) - 32)
+		else
+			res += c
+		end
+	end
+	return res
+end
+
+bool IsLowercase(string c)
+	return CharToInt(c) >= 0 && CharToInt(c) <= 25
+end
+
+bool IsUppercase(string c)
+	return CharToInt(c) >= -32 && CharToInt(c) <= -7
+end
+
+string GetTimeDesc()
+	number mNum = GetMinute()
+	string mStr = mNum
+
+	if mNum < 10
+		mStr = "0" + mNum
+	end
+
+	number hNum = GetHour()
+	string hStr = hNum
+	
+	if hNum < 10
+		hNum = "0" + hStr
+	end
+	
+	return hStr + ":" + mStr
+end
